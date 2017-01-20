@@ -131,6 +131,7 @@ sub main(){
 			my $wd = 0;
 			my $at = "";
 			my $imstr = "";
+			my @dt = split('-', &ctime($page_i->{revision}{timestamp})); # date
 			
 			# loop through all vars looking for one with "px"
 			for (my $i=1; $i<scalar(@img); $i++) {
@@ -145,7 +146,7 @@ sub main(){
 				}
 			}
 			# form string with tags we have.
-			$imstr = "<img src=\"" . $imgurl . "/" . $fn . "\"";
+			$imstr = "<img src=\"" . $imgurl . "/" . @dt[0] . "/" . @dt[1] . "/". $fn . "\"";
 			if ($wd > 0) {$imstr = $imstr . " width=\"" . $wd . "\"";}
 			if ($at ne "") {$imstr = $imstr . " alt=\"" . $at . "\"";}
 			$imstr = $imstr . ">";
