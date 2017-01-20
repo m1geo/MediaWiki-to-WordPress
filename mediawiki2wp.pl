@@ -146,7 +146,7 @@ sub main(){
 				}
 			}
 			# form string with tags we have.
-			$imstr = "<img src=\"" . $imgurl . "/" . @dt[0] . "/" . @dt[1] . "/". $fn . "\"";
+			$imstr = "<img src=\"" . $imgurl . "/" . $dt[0] . "/" . $dt[1] . "/". $fn . "\"";
 			if ($wd > 0) {$imstr = $imstr . " width=\"" . $wd . "\"";}
 			if ($at ne "") {$imstr = $imstr . " alt=\"" . $at . "\"";}
 			$imstr = $imstr . ">";
