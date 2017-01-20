@@ -15,11 +15,13 @@ use POSIX qw/strftime/;
 use vars qw/ %opt /;
 
 my $version = "$0 v0.1";
-my $post_type = 'wiki';
-my $ping_status = 'open';
+my $post_type = 'page';
+my $ping_status = 'closed';
 my $parent = 0;
-my $comment_status = 'open';
-my $url = 'http://example.com/';
+my $comment_status = 'closed';
+my $page_status = 'draft'; # mark as draft and I publish when checked.
+my $url = 'http://new.george-smart.co.uk/wordpress';
+my $imgurl = $url . '/wp-content/uploads';
 
 
 #
@@ -99,14 +101,78 @@ sub main(){
 		}
 	);
 
-
-	
 	my @pages = @{$XML->{mediawiki}{page}};
-
+	my $content_temp = "";
+	my $mw_link = "";
+	my @img;
 	foreach my $page_i (@pages) {
+		$content_temp = $page_i->{revision}{text}{CONTENT};
+		$mw_link = $page_i->{title};
+		$mw_link =~ s/ /_/g;
+		$mw_link =~ s/[^\w]/_/g;
+		
+		# Parse for [[Category - just flag it up
+		$content_temp =~ s/\[{2}Category(.*?)\]{2}/<b>FIXME_Category: $1 <\/b>/g;
+		
+		# Parse for [[User - just flag it up
+		$content_temp =~ s/\[{2}User(.*?)\]{2}/<b>FIXME_User: $1 <\/b>/g;
+		
+		# Parse for [[MediaWiki - just flag it up
+		$content_temp =~ s/\[{2}MediaWiki(.*?)\]{2}/<b>FIXME_MediaWiki: $1 <\/b>/g;
+		
+		# Parse for [[Media - make simple hyperlinks
+		$content_temp =~ s/\[{2}Media:(.*?)\|(.*?)\]{2}/<a href=\"$1\">$2<\/a>/g;
+		$content_temp =~ s/\[{2}Media:(.*?)\]{2}/<a href=\"$1\">$1<\/a>/g;
+		
+		# Parse (or try to) the [[Image:.....]] tags.
+		while($content_temp =~ /\[{2}Image:(.+?)\]{2}/g ) {
+			@img = split('\|', $1); #pull in the match, and split on |
+			my $fn = $img[0]; #filename always first
+			my $wd = 0;
+			my $at = "";
+			my $imstr = "";
+			
+			# loop through all vars looking for one with "px"
+			for (my $i=1; $i<scalar(@img); $i++) {
+				# pixel size of image
+				if ($img[$i] =~ m/px$/) {
+					$wd = 0 + $img[$i]; # this isn't the best way to do this, but meh!
+				}
+				# alt text of image
+				if ( ($img[$i] !~ /px$/) && ($img[$i] !~ /^right$/i) && ($img[$i] !~ /^left$/i) && ($img[$i] !~ /^center$/i) && ($img[$i] !~ /^centre$/i) &&  ($img[$i] !~ /^thumb$/i) ) {
+					$at = $img[$i];
+					$at =~ s/\"//g;
+				}
+			}
+			# form string with tags we have.
+			$imstr = "<img src=\"" . $imgurl . "/" . $fn . "\"";
+			if ($wd > 0) {$imstr = $imstr . " width=\"" . $wd . "\"";}
+			if ($at ne "") {$imstr = $imstr . " alt=\"" . $at . "\"";}
+			$imstr = $imstr . ">";
+			# replace matching filenames with first matching index.
+			$content_temp =~ s/\[{2}Image:$fn.*\]{2}/$imstr/g;
+		}
+		
+		# Parse internal links (with description)
+		$content_temp =~ s/\[{2}(.*?)\|(.*?)\]{2}/<a href=\"$url\/$1\">$2<\/a>/g;
+		$content_temp =~ s/\[{2}(.*?)\]{2}/<a href=\"$url\/$1\">$1<\/a>/g;
+		# Parse internal links (without description, using page title as description)
+		#while($content_temp =~ /\[{2}(.*?)\]{2}/g ) {
+		#	my $t = $1;
+		#	$t =~ s/\]/./g;
+		#	$t =~ s/\[/./g;
+		#	my $tstr = "<a href=\"" . $url. '/' . &pageSlug($page_i->{title}) . "\">" . $page_i->{title} ."</a>" ;
+		#	#print STDERR $tstr . "\n";
+		#	#$content_temp =~ s/\[{2}$t\]{2}/$tstr/g;
+		#}
+
+		$content_temp =~ s/\[{2}(.*?)\]{2}/<b>FIXME: $1 <\/b>/g;
+		$content_temp =~ s/\[{1}([\S&&[^\]]+?)\s(.*?)\]{1}/<a href=\"$1\">$2<\/a>/g;
+		#print STDERR "\t RewriteRule ^/wiki/" . $mw_link ."\t/" . &pageSlug($page_i->{title}) . "\t[R=302]\n";
 		$rss->add_item(
 			title		=> $page_i->{title},
-			link		=> $url.$post_type.'/'.&pageSlug($page_i->{title}),
+			#link		=> $url.$post_type.'/'.&pageSlug($page_i->{title}),
+			link		=> $url.'/'.&pageSlug($page_i->{title}),
 			description	=> '',
 			dc		=>
 			{
@@ -114,14 +180,13 @@ sub main(){
 			},
 			content		=>
 			{
-				
-				encoded	=> $page_i->{revision}{text}{CONTENT}
+				encoded	=> $content_temp
 			},
 			wp		=>
 			{
 				post_date	=> &ctime($page_i->{revision}{timestamp}),
 				post_name	=> &pageSlug($page_i->{title}),
-				status		=> 'publish',
+				status		=> $page_status,
 				post_type	=> $post_type,
 				ping_status	=> $ping_status,
 				comment_status 	=> $comment_status,
