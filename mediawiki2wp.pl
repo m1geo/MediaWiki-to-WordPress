@@ -128,6 +128,18 @@ sub main(){
 		$content_temp =~ s/\[{2}File:(.*?)\|(.*?)\]{2}/<a href=\"$1\">$2<\/a>/g;
 		$content_temp =~ s/\[{2}File:(.*?)\]{2}/<a href=\"$1\">$1<\/a>/g;
 		
+		# Parse for ''' and '' for bold and italic
+		$content_temp =~ s/\'{3}(.*?)\'{3}/<b>$1<\/b>/g;
+		$content_temp =~ s/\'{2}(.*?)\'{2}/<i>$1<\/i>/g;
+		
+		# Parse for headings
+		$content_temp =~ s/\={6}(.*?)\={6}/<h6>$1<\/h6>/g;
+		$content_temp =~ s/\={5}(.*?)\={5}/<h5>$1<\/h5>/g;
+		$content_temp =~ s/\={4}(.*?)\={4}/<h4>$1<\/h4>/g;
+		$content_temp =~ s/\={3}(.*?)\={3}/<h3>$1<\/h3>/g;
+		$content_temp =~ s/\={2}(.*?)\={2}/<h2>$1<\/h2>/g;
+		$content_temp =~ s/\={1}(.*?)\={1}/<h1>$1<\/h1>/g;
+
 		# Parse (or try to) the [[Image:.....]] tags.
 		while($content_temp =~ /\[{2}Image:(.+?)\]{2}/g ) {
 			@img = split('\|', $1); #pull in the match, and split on |
@@ -150,10 +162,10 @@ sub main(){
 				}
 			}
 			# form string with tags we have.
-			$imstr = "<img src=\"" . $imgurl . "/" . $dt[0] . "/" . $dt[1] . "/". $fn . "\"";
+			$imstr = "<a href=\"" . $imgurl . "/" . $dt[0] . "/" . $dt[1] . "/". $fn . "\"><img src=\"" . $imgurl . "/" . $dt[0] . "/" . $dt[1] . "/". $fn . "\"";
 			if ($wd > 0) {$imstr = $imstr . " width=\"" . $wd . "\"";}
 			if ($at ne "") {$imstr = $imstr . " alt=\"" . $at . "\"";}
-			$imstr = $imstr . ">";
+			$imstr = $imstr . "></a>";
 			# replace matching filenames with first matching index.
 			$content_temp =~ s/\[{2}Image:$fn.*\]{2}/$imstr/g;
 		}
@@ -180,10 +192,10 @@ sub main(){
 				}
 			}
 			# form string with tags we have.
-			$imstr = "<img src=\"" . $imgurl . "/" . $dt[0] . "/" . $dt[1] . "/". $fn . "\"";
+			$imstr = "<a href=\"" . $imgurl . "/" . $dt[0] . "/" . $dt[1] . "/". $fn . "\"><img src=\"" . $imgurl . "/" . $dt[0] . "/" . $dt[1] . "/". $fn . "\"";
 			if ($wd > 0) {$imstr = $imstr . " width=\"" . $wd . "\"";}
 			if ($at ne "") {$imstr = $imstr . " alt=\"" . $at . "\"";}
-			$imstr = $imstr . ">";
+			$imstr = $imstr . "></a>";
 			# replace matching filenames with first matching index.
 			$content_temp =~ s/\[{2}image:$fn.*\]{2}/$imstr/g;
 		}
@@ -192,7 +204,6 @@ sub main(){
 
 		# Parse internal links (without description, using page title as description) -- not working?
 		while($content_temp =~ /\[{2}(.*?)\]{2}/g ) {
-			print STDERR "Found: " . $1 . "\n";
 			@img = split('\|', $1); #pull in the match, and split on |
 			my $u = &pageSlug($img[0]); #filename always first
 			my $t = $img[0];
@@ -200,7 +211,6 @@ sub main(){
 				$t = $img[1];
 			}
 			my $tstr = "<a href=\"" . $url. '/' . $u . "\">" . $t ."</a>" ;
-			print STDERR $tstr . "\n";
 			$content_temp =~ s/\[{2}$1\]{2}/$tstr/g;
 		}
 
