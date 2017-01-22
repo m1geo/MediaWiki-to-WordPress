@@ -152,7 +152,7 @@ sub main(){
 		$content_temp =~ s/__TOC__//g;
 
 		# Parse (or try to) the [[Image:.....]] tags.
-		while($content_temp =~ /\[{2}(I|i)mage:(.+?)\]{2}/g ) {
+		while($content_temp =~ /\[{2}[Ii]mage:(.+?)\]{2}/g ) {
 			@img = split('\|', $1); #pull in the match, and split on |
 			my $fn = $img[0]; #filename always first
 			my $wd = 0;
