@@ -113,6 +113,7 @@ sub main(){
 		
 		# Parse for [[Category - just flag it up
 		$content_temp =~ s/\[{2}Category(.*?)\]{2}/<b>FIXME_Category$1 <\/b>/g;
+		$content_temp =~ s/\[{2}:Category(.*?)\]{2}/<b>FIXME_Category$1 <\/b>/g;
 		
 		# Parse for [[User - just flag it up
 		$content_temp =~ s/\[{2}User(.*?)\]{2}/<b>FIXME_User$1 <\/b>/g;
@@ -202,16 +203,23 @@ sub main(){
 
 		#$content_temp =~ s/\[{1}([\S&&[^\]]+?)\s(.*?)\]{1}/<a href=\"$1\">$2<\/a>/g;
 
-		# Parse internal links (without description, using page title as description) -- not working?
-		while($content_temp =~ /\[{2}(.*?)\]{2}/g ) {
-			@img = split('\|', $1); #pull in the match, and split on |
-			my $u = &pageSlug($img[0]); #filename always first
-			my $t = $img[0];
-			if (scalar(@img) > 1) {
-				$t = $img[1];
+		# Parse internal links (without description, using page title as description)
+		while($content_temp =~ /\[{2}(.*?)\]{2}/g) {
+			my $f = $1;
+			if ($f !~ m/\|/) { # if the string doesn't contain a pipe
+				my $u = &pageSlug($f); #filename always first
+				my $t = $f;
+				my $tstr = "<a href=\"" . $url. '/' . $u . "\">" . $t ."</a>" ;
+				$content_temp =~ s/\[{2}$f\]{2}/$tstr/g;
 			}
+		}
+
+		# Parse internal links (with description)
+		while($content_temp =~ /\[{2}(.*?)\|(.*?)\]{2}/g) {
+			my $u = &pageSlug($1); #filename always first
+			my $t = $2;
 			my $tstr = "<a href=\"" . $url. '/' . $u . "\">" . $t ."</a>" ;
-			$content_temp =~ s/\[{2}$1\]{2}/$tstr/g;
+			$content_temp =~ s/\[{2}$1\|$2\]{2}/$tstr/g;
 		}
 
 		$content_temp =~ s/\[{2}(.*?)\]{2}/<b>FIXME: $1 <\/b>/g;
