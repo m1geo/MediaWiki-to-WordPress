@@ -19,6 +19,7 @@ my $post_type = 'page';
 my $ping_status = 'closed';
 my $parent = 0;
 my $comment_status = 'closed';
+my $redirect = 0;
 my $page_status = 'draft'; # mark as draft and I publish when checked.
 my $url = 'http://new.george-smart.co.uk/wordpress';
 my $imgurl = $url . '/wp-content/uploads';
@@ -29,7 +30,7 @@ my $imgurl = $url . '/wp-content/uploads';
 #
 sub init(){
 	use Getopt::Std;
-	my $opt_string = 'hvVf:o:u:';
+	my $opt_string = 'hvVrf:o:u:';
 	getopts( "$opt_string", \%opt ) or usage();
 	if($opt{V}){
 		print $version."\n";
@@ -37,6 +38,9 @@ sub init(){
 	}
 	if($opt{u}){
 		$url = $opt{u};
+	}
+	if($opt{r}){
+		$redirect = 1;
 	}
 	usage() if $opt{h};
 	usage() if !$opt{f};
@@ -49,6 +53,7 @@ $0 -f <mediaWikiFile.xml> [-o <outputfile>] [-v] [-h] [-V]
 
 -f 	The XML file that was exported from media wiki
 -o	Output file to store the wordpress XML in.  If not defined, goes straight to STDOUT
+-r  Write Apache 'RewriteRule' for redirecting old pages to new URLs
 -h 	This help message
 -u	Base URL
 -v	Verbose
@@ -112,14 +117,14 @@ sub main(){
 		$mw_link =~ s/[^\w]/_/g;
 		
 		# Parse for [[Category - just flag it up
-		$content_temp =~ s/\[{2}Category(.*?)\]{2}/<b>FIXME_Category$1 <\/b>/g;
-		$content_temp =~ s/\[{2}:Category(.*?)\]{2}/<b>FIXME_Category$1 <\/b>/g;
+		$content_temp =~ s/\[{2}Category(.*?)\]{2}/<b>FIXME_Category $1<\/b>/g;
+		$content_temp =~ s/\[{2}:Category(.*?)\]{2}/<b>FIXME_Category $1<\/b>/g;
 		
 		# Parse for [[User - just flag it up
-		$content_temp =~ s/\[{2}User(.*?)\]{2}/<b>FIXME_User$1 <\/b>/g;
+		$content_temp =~ s/\[{2}User(.*?)\]{2}/<b>FIXME_User $1<\/b>/g;
 		
-		# Parse for [[MediaWiki - just flag it up
-		$content_temp =~ s/\[{2}MediaWiki(.*?)\]{2}/<b>FIXME_MediaWiki$1 <\/b>/g;
+		# Parse for [[MediaWiki - just flag it up_
+		$content_temp =~ s/\[{2}MediaWiki(.*?)\]{2}/<b>FIXME_MediaWiki $1<\/b>/g;
 		
 		# Parse for [[Media - make simple hyperlinks
 		$content_temp =~ s/\[{2}Media:(.*?)\|(.*?)\]{2}/<a href=\"$1\">$2<\/a>/g;
@@ -140,6 +145,11 @@ sub main(){
 		$content_temp =~ s/\={3}(.*?)\={3}/<h3>$1<\/h3>/g;
 		$content_temp =~ s/\={2}(.*?)\={2}/<h2>$1<\/h2>/g;
 		$content_temp =~ s/\={1}(.*?)\={1}/<h1>$1<\/h1>/g;
+		
+		# Some other bits here
+		$content_temp =~ s/\n\-{4}\n/<hr>/gm;
+		$content_temp =~ s/__NOTOC__//g;
+		$content_temp =~ s/__TOC__//g;
 
 		# Parse (or try to) the [[Image:.....]] tags.
 		while($content_temp =~ /\[{2}Image:(.+?)\]{2}/g ) {
@@ -225,8 +235,10 @@ sub main(){
 		$content_temp =~ s/\[{2}(.*?)\]{2}/<b>FIXME: $1 <\/b>/g;
 		$content_temp =~ s/\[{1}([\S&&[^\]]+?)\s(.*?)\]{1}/<a href=\"$1\">$2<\/a>/g;
 		
-		#Uncomment to rewrite rule
-		#print STDERR "\t RewriteRule ^/wiki/" . $mw_link ."\t/" . &pageSlug($page_i->{title}) . "\t[R=302]\n";
+		if ($redirect > 0) {
+			print STDERR "\t RewriteRule ^/wiki/" . $mw_link ."\t/" . &pageSlug($page_i->{title}) . "\t[R=302]\n";
+		}
+		
 		$rss->add_item(
 			title		=> $page_i->{title},
 			#link		=> $url.$post_type.'/'.&pageSlug($page_i->{title}),
