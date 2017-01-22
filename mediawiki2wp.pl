@@ -152,7 +152,7 @@ sub main(){
 		$content_temp =~ s/__TOC__//g;
 
 		# Parse (or try to) the [[Image:.....]] tags.
-		while($content_temp =~ /\[{2}Image:(.+?)\]{2}/g ) {
+		while($content_temp =~ /\[{2}(I|i)mage:(.+?)\]{2}/g ) {
 			@img = split('\|', $1); #pull in the match, and split on |
 			my $fn = $img[0]; #filename always first
 			my $wd = 0;
@@ -179,36 +179,6 @@ sub main(){
 			$imstr = $imstr . " class=\"aligncenter\"></a>";
 			# replace matching filenames with first matching index.
 			$content_temp =~ s/\[{2}Image:$fn.*\]{2}/$imstr/g;
-		}
-
-		# Parse (or try to) the [[image:.....]] tags.  --- LOWER CASE I on Image.
-		while($content_temp =~ /\[{2}image:(.+?)\]{2}/g ) {
-			@img = split('\|', $1); #pull in the match, and split on |
-			my $fn = $img[0]; #filename always first
-			my $wd = 0;
-			my $at = "";
-			my $imstr = "";
-			my @dt = split('-', &ctime($page_i->{revision}{timestamp})); # date
-			
-			# loop through all vars looking for one with "px"
-			for (my $i=1; $i<scalar(@img); $i++) {
-				# pixel size of image
-				if ($img[$i] =~ m/px$/) {
-					$wd = 0 + $img[$i]; # this isn't the best way to do this, but meh!
-				}
-				# alt text of image
-				if ( ($img[$i] !~ /px$/) && ($img[$i] !~ /^right$/i) && ($img[$i] !~ /^left$/i) && ($img[$i] !~ /^center$/i) && ($img[$i] !~ /^centre$/i) &&  ($img[$i] !~ /^thumb$/i) ) {
-					$at = $img[$i];
-					$at =~ s/\"//g;
-				}
-			}
-			# form string with tags we have.
-			$imstr = "<a href=\"" . $imgurl . "/" . $dt[0] . "/" . $dt[1] . "/". $fn . "\"><img src=\"" . $imgurl . "/" . $dt[0] . "/" . $dt[1] . "/". $fn . "\"";
-			if ($wd > 0) {$imstr = $imstr . " width=\"" . $wd . "\"";}
-			if ($at ne "") {$imstr = $imstr . " alt=\"" . $at . "\"";}
-			$imstr = $imstr . " class=\"aligncenter\"></a>";
-			# replace matching filenames with first matching index.
-			$content_temp =~ s/\[{2}image:$fn.*\]{2}/$imstr/g;
 		}
 
 		#$content_temp =~ s/\[{1}([\S&&[^\]]+?)\s(.*?)\]{1}/<a href=\"$1\">$2<\/a>/g;
