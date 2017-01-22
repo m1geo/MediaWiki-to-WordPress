@@ -14,7 +14,7 @@ use POSIX qw/strftime/;
 
 use vars qw/ %opt /;
 
-my $version = "$0 v0.1";
+my $version = "$0 v0.2";
 my $post_type = 'page';
 my $ping_status = 'closed';
 my $parent = 0;
@@ -53,7 +53,7 @@ $0 -f <mediaWikiFile.xml> [-o <outputfile>] [-v] [-h] [-V]
 
 -f 	The XML file that was exported from media wiki
 -o	Output file to store the wordpress XML in.  If not defined, goes straight to STDOUT
--r  Write Apache 'RewriteRule' for redirecting old pages to new URLs
+-r  Write Apache 'RewriteRule' lines to STDERR for redirecting old pages to new URLs
 -h 	This help message
 -u	Base URL
 -v	Verbose
@@ -176,7 +176,7 @@ sub main(){
 			$imstr = "<a href=\"" . $imgurl . "/" . $dt[0] . "/" . $dt[1] . "/". $fn . "\"><img src=\"" . $imgurl . "/" . $dt[0] . "/" . $dt[1] . "/". $fn . "\"";
 			if ($wd > 0) {$imstr = $imstr . " width=\"" . $wd . "\"";}
 			if ($at ne "") {$imstr = $imstr . " alt=\"" . $at . "\"";}
-			$imstr = $imstr . "></a>";
+			$imstr = $imstr . " class=\"aligncenter\"></a>";
 			# replace matching filenames with first matching index.
 			$content_temp =~ s/\[{2}Image:$fn.*\]{2}/$imstr/g;
 		}
@@ -206,7 +206,7 @@ sub main(){
 			$imstr = "<a href=\"" . $imgurl . "/" . $dt[0] . "/" . $dt[1] . "/". $fn . "\"><img src=\"" . $imgurl . "/" . $dt[0] . "/" . $dt[1] . "/". $fn . "\"";
 			if ($wd > 0) {$imstr = $imstr . " width=\"" . $wd . "\"";}
 			if ($at ne "") {$imstr = $imstr . " alt=\"" . $at . "\"";}
-			$imstr = $imstr . "></a>";
+			$imstr = $imstr . " class=\"aligncenter\"></a>";
 			# replace matching filenames with first matching index.
 			$content_temp =~ s/\[{2}image:$fn.*\]{2}/$imstr/g;
 		}
