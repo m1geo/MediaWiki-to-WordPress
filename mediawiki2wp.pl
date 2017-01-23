@@ -178,7 +178,7 @@ sub main(){
 			if ($at ne "") {$imstr = $imstr . " alt=\"" . $at . "\"";}
 			$imstr = $imstr . " class=\"aligncenter\"></a>";
 			# replace matching filenames with first matching index.
-			$content_temp =~ s/\[{2}Image:$fn.*\]{2}/$imstr/g;
+			$content_temp =~ s/\[{2}[Ii]mage:$fn.*\]{2}/$imstr/g;
 		}
 
 		#$content_temp =~ s/\[{1}([\S&&[^\]]+?)\s(.*?)\]{1}/<a href=\"$1\">$2<\/a>/g;
