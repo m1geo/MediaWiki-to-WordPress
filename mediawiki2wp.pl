@@ -21,8 +21,9 @@ my $parent = 0;
 my $comment_status = 'closed';
 my $redirect = 0;
 my $page_status = 'draft'; # mark as draft and I publish when checked.
-my $url = 'http://new.george-smart.co.uk/wordpress';
-my $imgurl = $url . '/wp-content/uploads';
+my $url = 'http://new.george-smart.co.uk';
+my $imgurl = $url . '/wordpress/wp-content/uploads';
+my $medurl = $url . '/wordpress/wp-content/uploads/bin';
 
 
 #
@@ -127,29 +128,53 @@ sub main(){
 		$content_temp =~ s/\[{2}MediaWiki(.*?)\]{2}/<b>FIXME_MediaWiki $1<\/b>/g;
 		
 		# Parse for [[Media - make simple hyperlinks
-		$content_temp =~ s/\[{2}Media:(.*?)\|(.*?)\]{2}/<a href=\"$1\">$2<\/a>/g;
-		$content_temp =~ s/\[{2}Media:(.*?)\]{2}/<a href=\"$1\">$1<\/a>/g;
+		$content_temp =~ s/\[{2}Media:(.*?)\|(.*?)\]{2}/<a href=\"$medurl\/$1\">$2<\/a>/g;
+		$content_temp =~ s/\[{2}Media:(.*?)\]{2}/<a href=\"$medurl\/$1\">$1<\/a>/g;
+		
+		# Parse for [[File - look like images (i.e., contain PNG/JPG. 
+		$content_temp =~ s/\[{2}File:(.*?)([Pp][Nn][Gg])(.*?)\]{2}/[[Image:$1$2$3]]/g;
+		$content_temp =~ s/\[{2}File:(.*?)([Jj][Pp][Gg])(.*?)\]{2}/[[Image:$1$2$3]]/g;
 		
 		# Parse for [[File - make simple hyperlinks
-		$content_temp =~ s/\[{2}File:(.*?)\|(.*?)\]{2}/<a href=\"$1\">$2<\/a>/g;
-		$content_temp =~ s/\[{2}File:(.*?)\]{2}/<a href=\"$1\">$1<\/a>/g;
+		$content_temp =~ s/\[{2}File:(.*?)\|(.*?)\]{2}/<a href=\"$medurl\/$1\">$2<\/a>/g;
+		$content_temp =~ s/\[{2}File:(.*?)\]{2}/<a href=\"$medurl\/$1\">$1<\/a>/g;
 		
 		# Parse for ''' and '' for bold and italic
 		$content_temp =~ s/\'{3}(.*?)\'{3}/<b>$1<\/b>/g;
 		$content_temp =~ s/\'{2}(.*?)\'{2}/<i>$1<\/i>/g;
 		
 		# Parse for headings
-		$content_temp =~ s/\={6}(.*?)\={6}/<h6>$1<\/h6>/g;
-		$content_temp =~ s/\={5}(.*?)\={5}/<h5>$1<\/h5>/g;
-		$content_temp =~ s/\={4}(.*?)\={4}/<h4>$1<\/h4>/g;
-		$content_temp =~ s/\={3}(.*?)\={3}/<h3>$1<\/h3>/g;
-		$content_temp =~ s/\={2}(.*?)\={2}/<h2>$1<\/h2>/g;
-		$content_temp =~ s/\={1}(.*?)\={1}/<h1>$1<\/h1>/g;
+		$content_temp =~ s/\n\={6}\ ?(.*?)\ ?\={6}\n/\n<h6>$1<\/h6>\n/gm;
+		$content_temp =~ s/\n\={5}\ ?(.*?)\ ?\={5}\n/\n<h5>$1<\/h5>\n/gm;
+		$content_temp =~ s/\n\={4}\ ?(.*?)\ ?\={4}\n/\n<h4>$1<\/h4>\n/gm;
+		$content_temp =~ s/\n\={3}\ ?(.*?)\ ?\={3}\n/\n<h3>$1<\/h3>\n/gm;
+		$content_temp =~ s/\n\={2}\ ?(.*?)\ ?\={2}\n/\n<h2>$1<\/h2>\n/gm;
+		$content_temp =~ s/\n\={1}\ ?(.*?)\ ?\={1}\n/\n<h1>$1<\/h1>\n/gm;
+		
+		# Poor attempt at tables - This makes AWFUL HTML but is a start.
+		# Wordpress seems to tidy it up, though.
+		$content_temp =~ s/\n\{\|(.*?)$/<table $1 >\n<tr>/gm;
+		$content_temp =~ s/\n\|\}/<\/tr>\n<\/table>/gm;
+		$content_temp =~ s/\ ?[\|\!][\|\!]\ ?/<\/td><td>/g;
+		$content_temp =~ s/\n[\|\!]-/<\/td><\/tr><tr>/g;
+		$content_temp =~ s/\n[\|\!]\ ?/<td>/g;
 		
 		# Some other bits here
 		$content_temp =~ s/\n\-{4}\n/<hr>/gm;
 		$content_temp =~ s/__NOTOC__//g;
 		$content_temp =~ s/__TOC__//g;
+		$content_temp =~ s/\n\ *?\* *?(.*?)\n/<ul><li>$1<\/ul>\n/gm; # try and make something of bullet points?
+		$content_temp =~ s/\n\ *?\: *?(.*?)\n/<div style="text-indent: 1em;">$1<\/div>\n/gm; # try and make something of : indents?
+		$content_temp =~ s/#REDIRECT (.*?)\]{2}/This page was moved here: $1\]\]. <a href="\/contact-me">Please report this message to the webmaster<\/a>\./g;
+		
+		# Math things
+		$content_temp =~ s/<math>(.*?)<\/math>/$1/g;
+		$content_temp =~ s/\\Omega/&Omega;/g;
+		$content_temp =~ s/\^\\circ/&deg;/g;
+		$content_temp =~ s/\\lambda/&lambda;/g;
+		$content_temp =~ s/\\.*?frac\{1\}\{2\}/&frac12;/g; # 1/2
+		$content_temp =~ s/\\.*?frac\{1\}\{4\}/&frac14;/g; # 1/4
+		$content_temp =~ s/\\.*?frac\{4\}\{3\}/1&#x2153;/g; # 4/3
 
 		# Parse (or try to) the [[Image:.....]] tags.
 		while($content_temp =~ /\[{2}[Ii]mage:(.+?)\]{2}/g ) {
