@@ -135,6 +135,29 @@ sub main(){
 		}
 		$content_temp = $new_content_temp;
 		
+		# Code for handling bullets
+		my $inUL = 0;
+		$new_content_temp = "";
+		@lines = split /\n/, $content_temp;
+		foreach my $line (@lines) {
+			if ( ($line =~ m/^\*/) && ($inUL == 0) ) {
+				# Entering UL
+				$line =~ s/^\*//;
+				$line = "<ul>\n<li>" . $line . "</li>";
+				$inUL = 1;
+			} elsif (($line =~ m/^\*/) && ($inUL == 1)) { 
+				# Inside UL
+				$line =~ s/^\*//;
+				$line = "<li>" . $line . "</li>";
+			} elsif ( ($line !~ m/^\*/) && ($inUL == 1) ) {
+				# leaving UL
+				$line = $line . "</ul>\n";
+				$inUL = 0;
+			}
+			$new_content_temp = $new_content_temp . $line . "\n";
+		}
+		$content_temp = $new_content_temp;
+		
 		# Parse for [[Category - just flag it up
 		$content_temp =~ s/\[{2}Category(.*?)\]{2}/<b>FIXME_Category $1<\/b>/g;
 		$content_temp =~ s/\[{2}:Category(.*?)\]{2}/<b>FIXME_Category $1<\/b>/g;
@@ -181,8 +204,8 @@ sub main(){
 		$content_temp =~ s/\n\-{4}\n/<hr>/gm;
 		$content_temp =~ s/__NOTOC__//g;
 		$content_temp =~ s/__TOC__//g;
-		$content_temp =~ s/\n\ *?\* *?(.*?)\n/<ul><li>$1<\/ul>\n/gm; # try and make something of bullet points?
-		$content_temp =~ s/\n\ *?\: *?(.*?)\n/<div style="text-indent: 1em;">$1<\/div>\n/gm; # try and make something of : indents?
+		#$content_temp =~ s/\n\ *?\* *?(.*?)\n/<ul><li>$1<\/ul>\n/gm; # try and make something of bullet points?
+		#$content_temp =~ s/\n\ *?\: *?(.*?)\n/<div style="text-indent: 1em;">$1<\/div>\n/gm; # try and make something of : indents?
 		$content_temp =~ s/#REDIRECT (.*?)\]{2}/This page was moved here: $1\]\]. <a href="\/contact-me">Please report this message to the webmaster<\/a>\./g;
 		
 		# Math things
