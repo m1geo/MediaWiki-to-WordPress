@@ -117,6 +117,24 @@ sub main(){
 		$mw_link =~ s/ /_/g;
 		$mw_link =~ s/[^\w]/_/g;
 		
+		# Code for handling block quotes (wordpress) from indented lines (mediawiki)
+		my $inBlockQuote = 0;
+		my $new_content_temp = "";
+		my @lines = split /\n/, $content_temp;
+		foreach my $line (@lines) {
+			if ( ($line =~ m/^ /) && ($inBlockQuote == 0) ) {
+				# Entering blockquote
+				$line = "<blockquote>\n" . $line;
+				$inBlockQuote = 1;
+			} elsif ( ($line !~ m/^ /) && ($inBlockQuote == 1) ) {
+				# leaving blockquote
+				$line = $line . "</blockquote>\n";
+				$inBlockQuote = 0;
+			}
+			$new_content_temp = $new_content_temp . $line . "\n";
+		}
+		$content_temp = $new_content_temp;
+		
 		# Parse for [[Category - just flag it up
 		$content_temp =~ s/\[{2}Category(.*?)\]{2}/<b>FIXME_Category $1<\/b>/g;
 		$content_temp =~ s/\[{2}:Category(.*?)\]{2}/<b>FIXME_Category $1<\/b>/g;
