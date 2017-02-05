@@ -2,7 +2,7 @@
 
 # Modified by George Smart, M1GEO
 # Originally from: http://www.analogrithems.com/rant/portfolio/mediawiki2wordpress/
-# Fri 20 Jan 2017
+# Fri 20 Jan 2017 - Sat 4 Feb 2017
 
 use strict;
 use warnings;
@@ -20,6 +20,7 @@ my $ping_status = 'closed';
 my $parent = 0;
 my $comment_status = 'closed';
 my $redirect = 0;
+my $listimages = 0;
 my $page_status = 'draft'; # mark as draft and I publish when checked.
 my $url = 'http://new.george-smart.co.uk';
 my $imgurl = $url . '/wordpress/wp-content/uploads';
@@ -31,7 +32,7 @@ my $medurl = $url . '/wordpress/wp-content/uploads/bin';
 #
 sub init(){
 	use Getopt::Std;
-	my $opt_string = 'hvVrf:o:u:';
+	my $opt_string = 'hvVrif:o:u:';
 	getopts( "$opt_string", \%opt ) or usage();
 	if($opt{V}){
 		print $version."\n";
@@ -42,6 +43,9 @@ sub init(){
 	}
 	if($opt{r}){
 		$redirect = 1;
+	}
+	if($opt{i}){
+		$listimages = 1;
 	}
 	usage() if $opt{h};
 	usage() if !$opt{f};
@@ -55,6 +59,7 @@ $0 -f <mediaWikiFile.xml> [-o <outputfile>] [-v] [-h] [-V]
 -f 	The XML file that was exported from media wiki
 -o	Output file to store the wordpress XML in.  If not defined, goes straight to STDOUT
 -r  Write Apache 'RewriteRule' lines to STDERR for redirecting old pages to new URLs
+-i  Write a list of image locations and paths to STDERR to help migrate them
 -h 	This help message
 -u	Base URL
 -v	Verbose
@@ -158,9 +163,9 @@ sub main(){
 		}
 		$content_temp = $new_content_temp;
 		
-		# Parse for [[Category - just flag it up
-		$content_temp =~ s/\[{2}Category(.*?)\]{2}/<b>FIXME_Category $1<\/b>/g;
-		$content_temp =~ s/\[{2}:Category(.*?)\]{2}/<b>FIXME_Category $1<\/b>/g;
+		# Parse for [[Category - delete
+		$content_temp =~ s/\[{2}Category(.*?)\]{2}//g;
+		$content_temp =~ s/\[{2}:Category(.*?)\]{2}//g;
 		
 		# Parse for [[User - just flag it up
 		$content_temp =~ s/\[{2}User(.*?)\]{2}/<b>FIXME_User $1<\/b>/g;
@@ -185,41 +190,38 @@ sub main(){
 		$content_temp =~ s/\'{2}(.*?)\'{2}/<i>$1<\/i>/g;
 		
 		# Parse for headings
-		$content_temp =~ s/\n\={6}\ ?(.*?)\ ?\={6}\n/\n<h6>$1<\/h6>\n/gm;
-		$content_temp =~ s/\n\={5}\ ?(.*?)\ ?\={5}\n/\n<h5>$1<\/h5>\n/gm;
-		$content_temp =~ s/\n\={4}\ ?(.*?)\ ?\={4}\n/\n<h4>$1<\/h4>\n/gm;
-		$content_temp =~ s/\n\={3}\ ?(.*?)\ ?\={3}\n/\n<h3>$1<\/h3>\n/gm;
-		$content_temp =~ s/\n\={2}\ ?(.*?)\ ?\={2}\n/\n<h2>$1<\/h2>\n/gm;
-		$content_temp =~ s/\n\={1}\ ?(.*?)\ ?\={1}\n/\n<h1>$1<\/h1>\n/gm;
+		$content_temp =~ s/^\={6}\ ?(.*?)\ ?\={6}\n/\n<h6>$1<\/h6>\n/gm;
+		$content_temp =~ s/^\={5}\ ?(.*?)\ ?\={5}\n/\n<h5>$1<\/h5>\n/gm;
+		$content_temp =~ s/^\={4}\ ?(.*?)\ ?\={4}\n/\n<h4>$1<\/h4>\n/gm;
+		$content_temp =~ s/^\={3}\ ?(.*?)\ ?\={3}\n/\n<h3>$1<\/h3>\n/gm;
+		$content_temp =~ s/^\={2}\ ?(.*?)\ ?\={2}\n/\n<h2>$1<\/h2>\n/gm;
+		$content_temp =~ s/^\={1}\ ?(.*?)\ ?\={1}\n/\n<h1>$1<\/h1>\n/gm;
 		
 		# Poor attempt at tables - This makes AWFUL HTML but is a start.
 		# Wordpress seems to tidy it up, though.
-		$content_temp =~ s/\n\{\|(.*?)$/<table $1 >\n<tr>/gm;
-		$content_temp =~ s/\n\|\}/<\/tr>\n<\/table>/gm;
+		$content_temp =~ s/^\{\|(.*?)$/<table $1 >\n<tr>/gm;
+		$content_temp =~ s/^\|\}/<\/tr>\n<\/table>/gm;
 		$content_temp =~ s/\ ?[\|\!][\|\!]\ ?/<\/td><td>/g;
-		$content_temp =~ s/\n[\|\!]-/<\/td><\/tr><tr>/g;
-		$content_temp =~ s/\n[\|\!]\ ?/<td>/g;
+		$content_temp =~ s/^[\|\!]-/<\/td><\/tr><tr>/gm;
+		$content_temp =~ s/^[\|\!]\ ?/<td>/gm;
 		
 		# Some other bits here
 		$content_temp =~ s/\n\-{4}\n/<hr>/gm;
 		$content_temp =~ s/__NOTOC__//g;
 		$content_temp =~ s/__TOC__//g;
-		#$content_temp =~ s/\n\ *?\* *?(.*?)\n/<ul><li>$1<\/ul>\n/gm; # try and make something of bullet points?
 		#$content_temp =~ s/\n\ *?\: *?(.*?)\n/<div style="text-indent: 1em;">$1<\/div>\n/gm; # try and make something of : indents?
 		$content_temp =~ s/#REDIRECT (.*?)\]{2}/This page was moved here: $1\]\]. <a href="\/contact-me">Please report this message to the webmaster<\/a>\./g;
 		
-		# Math things
-		$content_temp =~ s/<math>(.*?)<\/math>/$1/g;
-		$content_temp =~ s/\\Omega/&Omega;/g;
-		$content_temp =~ s/\^\\circ/&deg;/g;
-		$content_temp =~ s/\\lambda/&lambda;/g;
-		$content_temp =~ s/\\.*?frac\{1\}\{2\}/&frac12;/g; # 1/2
-		$content_temp =~ s/\\.*?frac\{1\}\{4\}/&frac14;/g; # 1/4
-		$content_temp =~ s/\\.*?frac\{4\}\{3\}/1&#x2153;/g; # 4/3
-
+		# Attempt to push Gallery Pics through the Image Code
+		$content_temp =~ s/<gallery>//g;
+		$content_temp =~ s/<\/gallery>//g;
+		$content_temp =~ s/^[Ii]mage:(.*?)$/[[Image:$1]]/gm;
+		
 		# Parse (or try to) the [[Image:.....]] tags.
 		while($content_temp =~ /\[{2}[Ii]mage:(.+?)\]{2}/g ) {
-			@img = split('\|', $1); #pull in the match, and split on |
+			my $initialmatch = $1;
+			my $quotedmatch = quotemeta ($initialmatch);
+			@img = split('\|', $initialmatch); #pull in the match, and split on |
 			my $fn = $img[0]; #filename always first
 			my $wd = 0;
 			my $at = "";
@@ -244,8 +246,16 @@ sub main(){
 			if ($at ne "") {$imstr = $imstr . " alt=\"" . $at . "\"";}
 			$imstr = $imstr . " class=\"aligncenter\"></a>";
 			# replace matching filenames with first matching index.
-			$content_temp =~ s/\[{2}[Ii]mage:$fn.*\]{2}/$imstr/g;
+			$content_temp =~ s/\[{2}[Ii]mage:$quotedmatch\]{2}/$imstr/g;
+			
+			# if requested print a list of shell commands to move images
+			if ($listimages > 0) {
+				print STDERR "mv `find . -iname '$fn'`  '../" . $dt[0] . "/" . $dt[1] . "/". $fn . "'\n";
+				#print STDERR "$fn\n";
+			}
 		}
+		
+		
 
 		#$content_temp =~ s/\[{1}([\S&&[^\]]+?)\s(.*?)\]{1}/<a href=\"$1\">$2<\/a>/g;
 
@@ -271,38 +281,46 @@ sub main(){
 		$content_temp =~ s/\[{2}(.*?)\]{2}/<b>FIXME: $1 <\/b>/g;
 		$content_temp =~ s/\[{1}([\S&&[^\]]+?)\s(.*?)\]{1}/<a href=\"$1\">$2<\/a>/g;
 		
+		#New Maths - must be after links because we insert [latexpage]
+		if ( ($content_temp =~ m/<math>/) || ($content_temp =~ m/<\/math>/) ) {
+			$content_temp = "[latexpage]\n" . $content_temp; # Enable Math Mode
+			$content_temp =~ s/<math>/\$/g;
+			$content_temp =~ s/<\/math>/\$/g;
+		}
+		
 		if ($redirect > 0) {
 			print STDERR "\t RewriteRule ^/wiki/" . $mw_link ."\t/" . &pageSlug($page_i->{title}) . "\t[R=302]\n";
 		}
-		
-		$rss->add_item(
-			title		=> $page_i->{title},
-			#link		=> $url.$post_type.'/'.&pageSlug($page_i->{title}),
-			link		=> $url.'/'.&pageSlug($page_i->{title}),
-			description	=> '',
-			dc		=>
-			{
-				creator		=> $page_i->{revision}{contributor}{username}
-			},
-			content		=>
-			{
-				encoded	=> $content_temp
-			},
-			wp		=>
-			{
-				post_date	=> &ctime($page_i->{revision}{timestamp}),
-				post_name	=> &pageSlug($page_i->{title}),
-				status		=> $page_status,
-				post_type	=> $post_type,
-				ping_status	=> $ping_status,
-				comment_status 	=> $comment_status,
-				menu_order	=> '',
-				post_password	=> '',
-				post_id		=> $page_i->{revision}{id},
-				post_parent	=> $parent
-				
-			}
-		);
+		#if ($page_i->{title} eq "OnlyOutputThisPageTitle") {
+			$rss->add_item(
+				title		=> $page_i->{title},
+				#link		=> $url.$post_type.'/'.&pageSlug($page_i->{title}),
+				link		=> $url.'/'.&pageSlug($page_i->{title}),
+				description	=> '',
+				dc		=>
+				{
+					creator		=> $page_i->{revision}{contributor}{username}
+				},
+				content		=>
+				{
+					encoded	=> $content_temp
+				},
+				wp		=>
+				{
+					post_date	=> &ctime($page_i->{revision}{timestamp}),
+					post_name	=> &pageSlug($page_i->{title}),
+					status		=> $page_status,
+					post_type	=> $post_type,
+					ping_status	=> $ping_status,
+					comment_status 	=> $comment_status,
+					menu_order	=> '',
+					post_password	=> '',
+					post_id		=> $page_i->{revision}{id},
+					post_parent	=> $parent
+					
+				}
+			);
+		#}
 	}
 	if($opt{o}){
 		$rss->save($opt{o});
